@@ -31,7 +31,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
 
-    iac-tfsec:
+  iac-tfsec:
     name: IaC Security - tfsec
     runs-on: ubuntu-latest
     needs: sast-sonarcloud
@@ -43,7 +43,7 @@ jobs:
         with:
           working_directory: infra/terraform
           additional_args: --format json --out tfsec.json
-          soft_fail: true
+          soft_fail: true   # ✅ 취약점 있어도 워크플로 실패하지 않음
 
       - name: List files (debug)
         run: ls -al infra/terraform
