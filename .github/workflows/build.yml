@@ -48,4 +48,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfsec-report
-          path: infra/terraform/reports/tfsec.json
+          path: infra/terraform/tfsec.json
