@@ -31,27 +31,20 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
 
-  iac-tfsec:
+    iac-tfsec:
     name: IaC Security - tfsec
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install tfsec
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y wget unzip
-          wget -q https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64.zip
-          unzip tfsec-linux-amd64.zip -d /usr/local/bin/
-          chmod +x /usr/local/bin/tfsec
+      - name: Run tfsec (official action)
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: infra/terraform
+          additional_args: --format json --out reports/tfsec.json
 
-      - name: Run tfsec scan
-        run: |
-          mkdir -p reports
-          tfsec infra/terraform --format json > reports/tfsec.json || true
-
-      - name: Upload tfsec report (artifact)
+      - name: Upload tfsec report
         uses: actions/upload-artifact@v4
         with:
           name: tfsec-report
-          path: reports/tfsec.json
+          path: infra/terraform/reports/tfsec.json
