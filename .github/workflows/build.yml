@@ -42,7 +42,7 @@ jobs:
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: infra/terraform
-          additional_args: --format json --out reports/tfsec.json
+          additional_args: --format json --out tfsec.json
 
       - name: Upload tfsec report
         uses: actions/upload-artifact@v4
