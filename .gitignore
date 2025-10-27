@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+env/
+.venv/
+*.sqlite3
+
+# Terraform (중요)
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# IDE/OS
+.vscode/
+*.swp
+.DS_Store
+
+# secrets
+.env

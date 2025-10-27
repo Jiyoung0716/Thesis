@@ -1,0 +1,57 @@
+name: CI/CD - DevSecOps Thesis
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sast-sonarcloud:
+    name: SAST - SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+
+  iac-tfsec:
+    name: IaC Security - tfsec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tfsec
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget unzip
+          wget -q https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64.zip
+          unzip tfsec-linux-amd64.zip -d /usr/local/bin/
+          chmod +x /usr/local/bin/tfsec
+
+      - name: Run tfsec scan
+        run: |
+          mkdir -p reports
+          tfsec infra/terraform --format json > reports/tfsec.json || true
+
+      - name: Upload tfsec report (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfsec-report
+          path: reports/tfsec.json
