@@ -76,6 +76,68 @@ resource "aws_dynamodb_table" "signups" {
 }
 
 ############################################################
+# S3 Bucket: devsecops-thesis-artifacts (reports & charts)
+# - 11월 7일: 보안 리포트 저장용 버킷 생성
+# - tfsec 테스트용: encryption / versioning / public access
+############################################################
+
+resource "aws_s3_bucket" "artifacts" {
+  bucket        = "thesis-artifacts-jiyoung-24142816" 
+  force_destroy = true
+
+  tags = {
+    Project  = "thesis"
+    Purpose  = "artifacts-storage"
+    Security = "enabled"
+  }
+}
+
+# 버전 관리 (권장)
+resource "aws_s3_bucket_versioning" "artifacts_versioning" {
+  bucket = aws_s3_bucket.artifacts.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# 서버사이드 암호화 (tfsec 권장 설정)
+resource "aws_s3_bucket_server_side_encryption_configuration" "artifacts_sse" {
+  bucket = aws_s3_bucket.artifacts.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# 퍼블릭 접근 차단 (tfsec 권장)
+resource "aws_s3_bucket_public_access_block" "artifacts_pab" {
+  bucket                  = aws_s3_bucket.artifacts.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# 출력
+output "artifacts_bucket_name" {
+  value       = aws_s3_bucket.artifacts.bucket
+  description = "S3 bucket name"
+}
+
+resource "aws_s3_object" "raw_prefix" {
+  bucket = aws_s3_bucket.artifacts.id
+  key    = "raw/"
+  content = ""    # 0바이트 객체로 프리픽스 고정
+}
+
+resource "aws_s3_object" "aggregated_prefix" {
+  bucket = aws_s3_bucket.artifacts.id
+  key    = "aggregated/"
+  content = ""
+}
+
+############################################################
 # (선택) 비교용 Insecure Version - 보안 설정 미적용
 #   → tfsec 실행 시 취약점 탐지용으로 활용
 ############################################################

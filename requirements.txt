@@ -1,0 +1,17 @@
+asgiref==3.10.0
+boto3==1.40.59
+botocore==1.40.59
+cffi==2.0.0
+cryptography==46.0.3
+Django==4.2.25
+Faker==37.11.0
+jmespath==1.0.1
+pycparser==2.23
+python-dateutil==2.9.0.post0
+python-dotenv==1.1.1
+s3transfer==0.14.0
+six==1.17.0
+sqlparse==0.5.3
+typing_extensions==4.15.0
+tzdata==2025.2
+urllib3==1.26.20
