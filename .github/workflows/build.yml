@@ -86,7 +86,6 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: 'http://localhost:8000'
-          cmd_options: '-r zap_report.html -J zap_report.json'
           fail_action: false   # 논문용이면 실패해도 워크플로 계속 가게
 
       - name: Upload ZAP reports
@@ -94,5 +93,6 @@ jobs:
         with:
           name: zap-report
           path: |
-            zap_report.html
-            zap_report.json
+            report_html.html
+            report_json.json
+            report_md.md
