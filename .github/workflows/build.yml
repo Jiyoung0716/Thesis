@@ -87,6 +87,7 @@ jobs:
         with:
           target: 'http://localhost:8000'
           fail_action: false   # 논문용이면 실패해도 워크플로 계속 가게
+          allow_issue_writing: false   # ❌ GitHub Issue 만들지 말라고 명시
 
       - name: Upload ZAP reports
         uses: actions/upload-artifact@v4
