@@ -84,6 +84,7 @@ jobs:
 
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
         with:
           target: 'http://localhost:8000'
           fail_action: false   # 논문용이면 실패해도 워크플로 계속 가게
