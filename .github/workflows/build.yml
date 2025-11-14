@@ -30,6 +30,18 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
+          
+      - name: Export SonarCloud JSON report
+        run: |
+          curl -u "${{ secrets.SONAR_TOKEN }}:" \
+            "https://sonarcloud.io/api/issues/search?componentKeys=Jiyoung0716_Thesis" \
+            -o sonarcloud.json
+
+      - name: Upload SonarCloud JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarcloud-report
+          path: sonarcloud.json
 
   iac-tfsec:
     name: IaC Security - tfsec
