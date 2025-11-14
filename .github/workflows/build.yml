@@ -46,13 +46,16 @@ jobs:
           soft_fail: true   # 취약점 있어도 워크플로 실패하지 않음
 
       - name: List files (debug)
-        run: ls -al infra/terraform
+        run:  |
+          pwd
+          ls -al
+          ls -al infra/terraform
 
       - name: Upload tfsec report
         uses: actions/upload-artifact@v4
         with:
           name: tfsec-report
-          path: infra/terraform/tfsec.json
+          path: tfsec.json
 
   dast-zap:
     name: DAST - OWASP ZAP
