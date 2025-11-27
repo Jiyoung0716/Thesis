@@ -60,13 +60,40 @@ def load_zap():
     counts = Counter()
 
     # ZAP JSON 구조: data["site"][...]["alerts"][...]["risk"]
-    sites = data.get("site", [])
+    sites = data.get("site", data.get("sites", []))
+    
+    # riskcode 기준 매핑 (0~3)
+    code_map = {
+        "0": "INFO",
+        "1": "LOW",
+        "2": "MEDIUM",
+        "3": "HIGH",
+    }
+    
     for site in sites:
         for alert in site.get("alerts", []):
-            sev = alert.get("risk", "UNKNOWN")  # "High", "Medium", "Low", "Informational"
+            # 1) 먼저 risk 필드 (예: "High", "Medium"...)
+            risk = alert.get("risk") or alert.get("riskdesc")
+            riskcode = alert.get("riskcode")
+
+            sev = "UNKNOWN"
+
+            if isinstance(risk, str):
+                r = risk.lower()
+                if "high" in r:
+                    sev = "HIGH"
+                elif "medium" in r:
+                    sev = "MEDIUM"
+                elif "low" in r:
+                    sev = "LOW"
+                elif "inform" in r:
+                    sev = "INFO"
+            elif riskcode is not None:
+                sev = code_map.get(str(riskcode), "UNKNOWN")
+
             counts[sev] += 1
 
-    print("[ZAP] risk counts:", dict(counts))
+    print("[ZAP] severity counts:", dict(counts))
     return counts
 
 
