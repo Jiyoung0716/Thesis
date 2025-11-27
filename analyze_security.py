@@ -1,0 +1,136 @@
+import os
+import json
+from collections import Counter
+import csv
+import matplotlib.pyplot as plt
+
+# GitHub Actions에서 download-artifact로 받은 파일들이 들어갈 경로
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+REPORTS_DIR = os.path.join(BASE_DIR, "reports")
+OUTPUT_DIR = os.path.join(BASE_DIR, "metrics_output")
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+def load_tfsec():
+    path = os.path.join(REPORTS_DIR, "tfsec-report", "tfsec.json")
+    if not os.path.exists(path):
+        print(f"[tfsec] 파일 없음: {path}")
+        return Counter()
+
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    counts = Counter()
+    for r in data.get("results", []):
+        sev = r.get("severity", "UNKNOWN")  # LOW / MEDIUM / HIGH ...
+        counts[sev] += 1
+
+    print("[tfsec] severity counts:", dict(counts))
+    return counts
+
+
+def load_sonarcloud():
+    path = os.path.join(REPORTS_DIR, "sonarcloud-report", "sonarcloud.json")
+    if not os.path.exists(path):
+        print(f"[SonarCloud] 파일 없음: {path}")
+        return Counter()
+
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    counts = Counter()
+    for issue in data.get("issues", []):
+        sev = issue.get("severity", "UNKNOWN")  # BLOCKER / CRITICAL / MAJOR ...
+        counts[sev] += 1
+
+    print("[SonarCloud] severity counts:", dict(counts))
+    return counts
+
+
+def load_zap():
+    path = os.path.join(REPORTS_DIR, "zap-report", "report_json.json")
+    if not os.path.exists(path):
+        print(f"[ZAP] 파일 없음: {path}")
+        return Counter()
+
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    counts = Counter()
+
+    # ZAP JSON 구조: data["site"][...]["alerts"][...]["risk"]
+    sites = data.get("site", [])
+    for site in sites:
+        for alert in site.get("alerts", []):
+            sev = alert.get("risk", "UNKNOWN")  # "High", "Medium", "Low", "Informational"
+            counts[sev] += 1
+
+    print("[ZAP] risk counts:", dict(counts))
+    return counts
+
+
+def write_csv(all_tools_counts, csv_path):
+    """
+    all_tools_counts: { "tfsec": Counter(...), "sonarcloud": Counter(...), "zap": Counter(...) }
+    """
+    severities = set()
+    for c in all_tools_counts.values():
+        severities.update(c.keys())
+    severities = sorted(severities)
+
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["tool", "severity", "count"])
+
+        for tool, counts in all_tools_counts.items():
+            for sev in severities:
+                writer.writerow([tool, sev, counts.get(sev, 0)])
+
+    print(f"[CSV] 저장 완료: {csv_path}")
+
+
+def plot_bar(tool_name, counts):
+    labels = list(counts.keys())
+    values = [counts[k] for k in labels]
+
+    if not labels:
+        print(f"[{tool_name}] 데이터 없음, 그래프 스킵")
+        return
+
+    plt.figure()
+    plt.bar(labels, values)
+    plt.title(f"{tool_name} severity distribution")
+    plt.xlabel("Severity")
+    plt.ylabel("Count")
+    out_path = os.path.join(OUTPUT_DIR, f"{tool_name}_severity.png")
+    plt.savefig(out_path)
+    plt.close()
+    print(f"[PNG] 저장 완료: {out_path}")
+
+
+def main():
+    tfsec_counts = load_tfsec()
+    sonar_counts = load_sonarcloud()
+    zap_counts = load_zap()
+
+    all_tools = {
+        "tfsec": tfsec_counts,
+        "sonarcloud": sonar_counts,
+        "zap": zap_counts,
+    }
+
+    # CSV 생성
+    csv_path = os.path.join(OUTPUT_DIR, "metrics.csv")
+    write_csv(all_tools, csv_path)
+
+    # 도구별 그래프 생성
+    plot_bar("tfsec", tfsec_counts)
+    plot_bar("sonarcloud", sonar_counts)
+    plot_bar("zap", zap_counts)
+
+    print("\n[✓] metrics_output 디렉터리 생성 완료")
+
+
+if __name__ == "__main__":
+    main()
