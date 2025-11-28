@@ -141,7 +141,7 @@ resource "aws_s3_object" "aggregated_prefix" {
 # (선택) 비교용 Insecure Version - 보안 설정 미적용
 #   → tfsec 실행 시 취약점 탐지용으로 활용
 ############################################################
-/*
+
 resource "aws_dynamodb_table" "signups_insecure" {
   name         = "thesis-signups-insecure"
   billing_mode = "PAY_PER_REQUEST"
@@ -167,4 +167,4 @@ resource "aws_dynamodb_table" "signups_insecure" {
     Security = "disabled"
   }
 }
-*/
+

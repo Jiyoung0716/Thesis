@@ -157,6 +157,47 @@ def main():
     plot_bar("zap", zap_counts)
 
     print("\n[✓] metrics_output 디렉터리 생성 완료")
+    
+    # 3개 도구 전체 취약점 비교
+    tools = ['SonarCloud', 'tfsec', 'ZAP']
+    counts = [
+        sum(sonar_counts.values()),
+        sum(tfsec_counts.values()),
+        sum(zap_counts.values()),
+    ]
+
+    plt.figure()
+    plt.bar(tools, counts)
+    plt.title("Security Findings by Tool")
+    plt.ylabel("Finding Count")
+    out_path = os.path.join(OUTPUT_DIR, "findings_by_tool.png")
+    plt.savefig(out_path)
+    plt.close()
+    print(f"[PNG] 저장 완료: {out_path}")
+    
+    # --- 여기까지 도구별 그래프 생성 ---
+
+    # 통합 severity Counter (세 도구 합산)
+    combined_counts = Counter()
+    combined_counts.update(tfsec_counts)
+    combined_counts.update(sonar_counts)
+    combined_counts.update(zap_counts)
+
+    # 통합 severity 그래프
+    if combined_counts:
+        labels = list(combined_counts.keys())
+        values = [combined_counts[k] for k in labels]
+
+        plt.figure()
+        plt.bar(labels, values)
+        plt.title("Combined Severity Distribution (All Tools)")
+        plt.xlabel("Severity")
+        plt.ylabel("Total Findings")
+        out_path = os.path.join(OUTPUT_DIR, "combined_severity.png")
+        plt.savefig(out_path)
+        plt.close()
+        print(f"[PNG] 저장 완료: {out_path}")
+
 
 
 if __name__ == "__main__":
