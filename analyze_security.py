@@ -18,48 +18,98 @@ def load_tfsec():
     path = os.path.join(REPORTS_DIR, "tfsec-report", "tfsec.json")
     if not os.path.exists(path):
         print(f"[tfsec] 파일 없음: {path}")
-        return Counter()
+        return Counter(), []
 
     with open(path, "r") as f:
         data = json.load(f)
 
     counts = Counter()
+    details = []
+    
     for r in data.get("results", []):
         sev = r.get("severity", "UNKNOWN")
+        rule_id = r.get("rule_id") or r.get("long_id")
+        desc = r.get("description", "")
+
+        loc = r.get("location", {}) or {}
+        filename = loc.get("filename", "")
+        start_line = loc.get("start_line") or loc.get("startLine")
+        end_line = loc.get("end_line") or loc.get("endLine")
+
         counts[sev] += 1
 
+        details.append({
+            "tool": "tfsec",
+            "severity": sev,
+            "rule_id": rule_id,
+            "message": desc,
+            "target": filename,
+            "location": f"{start_line}-{end_line}" if start_line else "",
+        })
+
     print("[tfsec] severity counts:", dict(counts))
-    return counts
+    return counts, details
 
 
 def load_sonarcloud():
     path = os.path.join(REPORTS_DIR, "sonarcloud-report", "sonarcloud.json")
     if not os.path.exists(path):
         print(f"[SonarCloud] 파일 없음: {path}")
-        return Counter()
+        return Counter(), []
 
     with open(path, "r") as f:
         data = json.load(f)
 
     counts = Counter()
+    details = []
+    
+    # component key -> 파일 경로 매핑
+    comp_paths = {}
+    for c in data.get("components", []):
+        key = c.get("key")
+        path_ = c.get("path") or c.get("name")
+        if key:
+            comp_paths[key] = path_
+    
     for issue in data.get("issues", []):
         sev = issue.get("severity", "UNKNOWN")
+        rule = issue.get("rule", "")
+        msg = issue.get("message", "")
+
+        comp_key = issue.get("component")
+        path_ = comp_paths.get(comp_key, comp_key)
+        line = issue.get("line")
+
         counts[sev] += 1
 
-    print("[SonarCloud] severity counts:", dict(counts))
-    return counts
+        if line:
+            target = f"{path_}:{line}"
+        else:
+            target = path_ or ""
 
+        details.append({
+            "tool": "sonarcloud",
+            "severity": sev,
+            "rule_id": rule,
+            "message": msg,
+            "target": target,
+            "location": str(line) if line else "",
+        })
+
+    print("[SonarCloud] severity counts:", dict(counts))
+    return counts, details
 
 def load_zap():
     path = os.path.join(REPORTS_DIR, "zap-report", "report_json.json")
     if not os.path.exists(path):
         print(f"[ZAP] 파일 없음: {path}")
-        return Counter()
+        return Counter(), []
 
     with open(path, "r") as f:
         data = json.load(f)
 
     counts = Counter()
+    details = []
 
     sites = data.get("site", data.get("sites", []))
     code_map = {
@@ -71,11 +121,12 @@ def load_zap():
 
     for site in sites:
         for alert in site.get("alerts", []):
+            name = alert.get("name", "")
+            plugin_id = alert.get("pluginId", "")
             risk = alert.get("risk") or alert.get("riskdesc")
             riskcode = alert.get("riskcode")
 
             sev = "UNKNOWN"
-
             if isinstance(risk, str):
                 r = risk.lower()
                 if "high" in r:
@@ -91,8 +142,23 @@ def load_zap():
 
             counts[sev] += 1
 
+            # URL 하나만 대표로 잡기 (instances가 여러 개일 수도 있어서)
+            url = alert.get("url", "")
+            inst = alert.get("instances") or []
+            if inst and isinstance(inst, list):
+                url = inst[0].get("uri", url)
+
+            details.append({
+                "tool": "zap",
+                "severity": sev,
+                "rule_id": plugin_id,
+                "message": name,
+                "target": url,
+                "location": "",   # ZAP은 보통 URL로 충분
+            })
+
     print("[ZAP] severity counts:", dict(counts))
-    return counts
+    return counts, details
 
 
 # -------------------- CSV -------------------- #
@@ -112,17 +178,36 @@ def write_csv(all_tools_counts, csv_path):
                 writer.writerow([tool, sev, counts.get(sev, 0)])
 
     print(f"[CSV] 저장 완료: {csv_path}")
+    
+def write_detailed_csv(all_details, csv_path):
+    """
+    all_details: [{tool, severity, rule_id, message, target, location}, ...]
+    """
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["tool", "severity", "rule_id", "target", "location", "message"])
+        for d in all_details:
+            writer.writerow([
+                d.get("tool", ""),
+                d.get("severity", ""),
+                d.get("rule_id", ""),
+                d.get("target", ""),
+                d.get("location", ""),
+                d.get("message", "").replace("\n", " "),
+            ])
+    print(f"[CSV] 상세 저장 완료: {csv_path}")
 
 
 # -------------------- 시각화 유틸 -------------------- #
 
 # severity 순서 고정 (있으면 이 순서, 없으면 무시)
-SEVERITY_ORDER = ["BLOCKER", "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO", "UNKNOWN"]
+SEVERITY_ORDER = ["BLOCKER", "CRITICAL","MAJOR", "HIGH", "MEDIUM", "LOW", "INFO", "UNKNOWN"]
 
 # 색상 맵 (툴/그래프가 달라도 같은 severity면 같은 톤)
 COLOR_MAP = {
     "BLOCKER": "#7f0000",
     "CRITICAL": "#d7301f",
+    "MAJOR": "#fc4e2a",
     "HIGH": "#fc8d59",
     "MEDIUM": "#fdae61",
     "LOW": "#fee090",
@@ -240,9 +325,9 @@ def plot_findings_by_tool(all_tools_counts):
 # -------------------- main -------------------- #
 
 def main():
-    tfsec_counts = load_tfsec()
-    sonar_counts = load_sonarcloud()
-    zap_counts = load_zap()
+    tfsec_counts, tfsec_details = load_tfsec()
+    sonar_counts, sonar_details = load_sonarcloud()
+    zap_counts, zap_details = load_zap()
 
     all_tools = {
         "tfsec": tfsec_counts,
@@ -253,6 +338,11 @@ def main():
     # CSV 생성
     csv_path = os.path.join(OUTPUT_DIR, "metrics.csv")
     write_csv(all_tools, csv_path)
+    
+    # 상세용 CSV
+    detailed_path = os.path.join(OUTPUT_DIR, "metrics_detailed.csv")
+    all_details = tfsec_details + sonar_details + zap_details
+    write_detailed_csv(all_details, detailed_path)
 
     # 개별 그래프
     plot_bar("sonarcloud", sonar_counts)
