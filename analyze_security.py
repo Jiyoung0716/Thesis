@@ -299,33 +299,53 @@ def plot_combined_severity(all_tools_counts):
 def plot_findings_by_tool(all_tools_counts):
     tools = list(all_tools_counts.keys())
     counts = [sum(c.values()) for c in all_tools_counts.values()]
-    
-    # 색상 팔레트 (도구별 고유색)
-    colors = ["#fc8d59", "#d7301f", "#91bfdb"]  # tfsec, sonarcloud, zap
 
-    plt.figure(figsize=(6, 4))
+    # 도구별 고정 색상
+    tool_colors = ["#fc8d59", "#d7301f", "#91bfdb"]  # tfsec, sonarcloud, zap
 
-    # 파이 차트
-    wedges, texts, autotexts = plt.pie(
+    plt.figure(figsize=(10, 4))  # 가로로 배치
+
+    # ---------------------
+    # (1) Left: Bar Chart
+    # ---------------------
+    plt.subplot(1, 2, 1)
+    bars = plt.bar(tools, counts, color=tool_colors)
+    plt.title("Security Findings by Tool (Bar)")
+    plt.ylabel("Finding Count")
+
+    for bar, val in zip(bars, counts):
+        plt.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.2,
+            str(val),
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+
+    # ---------------------
+    # (2) Right: Pie Chart
+    # ---------------------
+    plt.subplot(1, 2, 2)
+    plt.pie(
         counts,
         labels=tools,
         autopct="%1.1f%%",
         startangle=140,
-        colors=colors,
-        textprops={"fontsize": 10}
+        colors=tool_colors,
+        textprops={"fontsize": 10},
     )
+    plt.title("Security Findings by Tool (Pie)")
 
-    plt.title("Security Findings by Tool (Pie Chart)")
-
-    # 테두리 제거 + 비율 보존
-    plt.axis("equal")
-
+    # ---------------------
+    # Export
+    # ---------------------
     out_path = os.path.join(OUTPUT_DIR, "findings_by_tool.png")
     plt.tight_layout()
     plt.savefig(out_path)
     plt.close()
-    print(f"[PNG] 저장 완료: {out_path}")
 
+    print(f"[PNG] 저장 완료: {out_path}")
 
 # -------------------- main -------------------- #
 
