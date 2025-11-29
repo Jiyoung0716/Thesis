@@ -141,6 +141,11 @@ jobs:
         run: |
           python3 analyze_security.py
 
+      - name: Quality Gate Check
+        run: |
+          python3 quality_gate.py
+        # 실패 시, exit 1로 워크플로우 fail 처리
+
       - name: Upload metrics artifacts
         uses: actions/upload-artifact@v4
         with:
