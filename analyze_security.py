@@ -215,6 +215,24 @@ COLOR_MAP = {
     "UNKNOWN": "#cccccc",
 }
 
+# tfsec 전용 (파란 계열)
+TFSEC_COLOR_MAP = {
+    "HIGH": "#1f77b4",
+    "MEDIUM": "#6baed6",
+    "LOW": "#9ecae1",
+    "INFO": "#c7e9f1",
+    "UNKNOWN": "#d0d0d0",
+}
+
+# ZAP 전용 (초록 계열)
+ZAP_COLOR_MAP = {
+    "HIGH": "#2ca02c",
+    "MEDIUM": "#74c476",
+    "LOW": "#a1d99b",
+    "INFO": "#c7e9c0",
+    "UNKNOWN": "#d0d0d0",
+}
+
 plt.style.use("ggplot")
 
 
@@ -235,19 +253,42 @@ def plot_bar(tool_name, counts):
         print(f"[{tool_name}] 데이터 없음, 그래프 스킵")
         return
 
-    colors = [COLOR_MAP.get(sev, "#999999") for sev in labels]
+    # 툴별 컬러 팔레트 선택
+    if tool_name.lower() == "tfsec":
+        palette = TFSEC_COLOR_MAP
+    elif tool_name.lower() in ("zap", "owasp zap"):
+        palette = ZAP_COLOR_MAP
+    else:
+        # 기본은 기존 severity 기반 팔레트 (SonarCloud 등)
+        palette = COLOR_MAP
+
+    colors = [palette.get(sev, "#999999") for sev in labels]
 
     plt.figure(figsize=(6, 4))
-    bars = plt.bar(labels, values, color=colors)
-    plt.title(f"{tool_name} severity distribution")
+
+    # 막대 너비를 조금 줄임
+    bars = plt.bar(labels, values, color=colors, width=0.5)
+
+    # 타이틀을 굵게
+    plt.title(f"{tool_name} severity distribution", fontweight="bold")
     plt.xlabel("Severity")
     plt.ylabel("Count")
 
-    # 막대 위에 숫자 표시
+    # y축 최대값 조정 (tfsec처럼 값이 1일 때 너무 위로 치솟지 않게)
+    max_val = max(values)
+    if max_val <= 1:
+        ymax = 1.5
+    elif max_val <= 2:
+        ymax = 2.5
+    else:
+        ymax = max_val * 1.15  # 살짝 여유
+    plt.ylim(0, ymax)
+
+    # 막대 위에 숫자 표시 – y축 스케일에 맞게 위치 조정
     for bar, val in zip(bars, values):
         plt.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.1,
+            bar.get_height() + (ymax * 0.03),
             str(val),
             ha="center",
             va="bottom",

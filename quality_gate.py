@@ -38,10 +38,10 @@ def main():
         blocking_total += counts_by_sev.get(sev, 0)
 
     if blocking_total > 0:
-        print(f"❌ Quality Gate FAILED: {BLOCKING_SEVERITIES} 합계 = {blocking_total}")
+        print(f"❌ Quality Gate FAILED: {BLOCKING_SEVERITIES} Total = {blocking_total}")
         sys.exit(1)
     else:
-        print("✅ Quality Gate PASSED: blocking severity 없음")
+        print("✅ Quality Gate PASSED: bNo  blocking severity ")
         sys.exit(0)
 
 
