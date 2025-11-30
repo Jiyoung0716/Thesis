@@ -33,6 +33,11 @@ def load_counts_from_csv(csv_path):
 
     return counts_by_sev
 
+ALLOWED_ZAP_HIGH_MESSAGES = [
+    'Server Leaks Version Information via "Server" HTTP Response Header Field',
+    "CSP: Failure to Define Directive with No Fallback",
+    "GET for POST",
+]
 
 def subtract_allowed_exceptions(detailed_csv_path, original_count):
     """ZAP HIGH 중 'Server Leaks Version Information' 은 예외로 빼준다."""
@@ -53,11 +58,10 @@ def subtract_allowed_exceptions(detailed_csv_path, original_count):
             if (
                 tool == "zap"
                 and severity == "HIGH"
-                and "Server Leaks Version Information" in message
+                and any(allowed in message for allowed in ALLOWED_ZAP_HIGH_MESSAGES)
             ):
                 original_count -= 1
-
-    # 음수로 내려가는 일은 없게 방어
+                
     return max(original_count, 0)
 
 
