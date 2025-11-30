@@ -1,9 +1,3 @@
-############################################################
-#  Terraform IaC for Thesis Project
-#  - 목적: AWS DynamoDB 테이블(thesis-signups) 자동 생성
-#  - IaC(코드 기반 인프라 정의)와 보안 분석(tfsec)을 위한 예시
-############################################################
-
 # Terraform 버전 및 Provider 설정
 terraform {
   required_version = ">= 1.5.0"     # Terraform 최소 버전
@@ -30,7 +24,6 @@ variable "region" {
 ############################################################
 # DynamoDB Table Resource: thesis-signups
 # - 회원가입 사용자(Employee / Guest) 데이터 저장용
-# - IaC를 통한 테이블 자동 생성
 ############################################################
 
 # 인프라 설계도 (Infrastruture Blueprint)
@@ -105,7 +98,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "artifacts_sse" {
   bucket = aws_s3_bucket.artifacts.id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm = "aws:kms" # AES256 : tfsec 실행 시, High severity 이슈 발생 > 수정필요
+      kms_master_key_id = aws_kms_key.artifacts_cmk.arn
     }
   }
 }
@@ -137,34 +131,13 @@ resource "aws_s3_object" "aggregated_prefix" {
   content = ""
 }
 
-############################################################
-# (선택) 비교용 Insecure Version - 보안 설정 미적용
-#   → tfsec 실행 시 취약점 탐지용으로 활용
-############################################################
-/*
-resource "aws_dynamodb_table" "signups_insecure" {
-  name         = "thesis-signups-insecure"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "role"
-  range_key    = "username"
+# Add KMS CMK resource for handling HIGH issues
+resource "aws_kms_key" "artifacts_cmk" {
+  description             = "CMK for thesis artifacts S3 bucket"
+  deletion_window_in_days = 7
 
-  attribute {
-    name = "role"
-    type = "S"
-  }
-  attribute {
-    name = "username"
-    type = "S"
-  }
-
-  # ⚠ 보안 설정 없음 (암호화/복구 비활성)
-  # tfsec가 다음과 같은 경고를 표시할 것임:
-  # - AWS077: DynamoDB table has no server-side encryption
-  # - AWS078: DynamoDB table does not have point-in-time recovery enabled
   tags = {
-    Project = "thesis"
-    Purpose = "signups_insecure"
-    Security = "disabled"
+    Project  = "thesis"
+    Purpose  = "artifacts-encryption"
   }
 }
-*/
