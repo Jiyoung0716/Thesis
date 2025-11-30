@@ -60,3 +60,5 @@ def index(request):
         print("❌ Form errors:", form.errors)
 
     return render(request, 'index.html', {'form': form, 'saved': saved})
+    
+    
