@@ -11,7 +11,7 @@ BLOCKING_SEVERITIES = ["CRITICAL", "HIGH"]  # 여기서 정책 조정 가능
 
 def load_counts_from_csv(csv_path):
     if not os.path.exists(csv_path):
-        print(f"❌ CSV 파일이 없습니다: {csv_path}")
+        print(f"No CSV file: {csv_path}")
         sys.exit(1)
 
     counts_by_sev = Counter()
@@ -41,7 +41,7 @@ def main():
         print(f"❌ Quality Gate FAILED: {BLOCKING_SEVERITIES} Total = {blocking_total}")
         sys.exit(1)
     else:
-        print("✅ Quality Gate PASSED: bNo  blocking severity ")
+        print("✅ Quality Gate PASSED: No blocking severity")
         sys.exit(0)
 
 

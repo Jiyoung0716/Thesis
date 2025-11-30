@@ -99,6 +99,36 @@ def load_sonarcloud():
     print("[SonarCloud] severity counts:", dict(counts))
     return counts, details
 
+def _zap_determine_severity(alert, code_map):
+    """ZAP alert로부터 severity 계산"""
+    risk = alert.get("risk") or alert.get("riskdesc")
+    riskcode = alert.get("riskcode")
+
+    if isinstance(risk, str):
+        r = risk.lower()
+        if "high" in r:
+            return "HIGH"
+        if "medium" in r:
+            return "MEDIUM"
+        if "low" in r:
+            return "LOW"
+        if "inform" in r:
+            return "INFO"
+
+    if riskcode is not None:
+        return code_map.get(str(riskcode), "UNKNOWN")
+
+    return "UNKNOWN"
+
+
+def _zap_get_alert_url(alert):
+    """ZAP alert에서 대표 URL 하나 추출"""
+    url = alert.get("url", "")
+    inst = alert.get("instances") or []
+    if inst and isinstance(inst, list):
+        return inst[0].get("uri", url)
+    return url
+
 def load_zap():
     path = os.path.join(REPORTS_DIR, "zap-report", "report_json.json")
     if not os.path.exists(path):
@@ -111,7 +141,8 @@ def load_zap():
     counts = Counter()
     details = []
 
-    sites = data.get("site", data.get("sites", []))
+    sites = data.get("site") or data.get("sites") or []
+
     code_map = {
         "0": "INFO",
         "1": "LOW",
@@ -120,33 +151,15 @@ def load_zap():
     }
 
     for site in sites:
-        for alert in site.get("alerts", []):
+        for alert in site.get("alerts") or []:
             name = alert.get("name", "")
             plugin_id = alert.get("pluginId", "")
-            risk = alert.get("risk") or alert.get("riskdesc")
-            riskcode = alert.get("riskcode")
 
-            sev = "UNKNOWN"
-            if isinstance(risk, str):
-                r = risk.lower()
-                if "high" in r:
-                    sev = "HIGH"
-                elif "medium" in r:
-                    sev = "MEDIUM"
-                elif "low" in r:
-                    sev = "LOW"
-                elif "inform" in r:
-                    sev = "INFO"
-            if sev == "UNKNOWN" and riskcode is not None:
-                sev = code_map.get(str(riskcode), "UNKNOWN")
+            # 🔽 복잡한 로직 helper로 분리 → Cognitive Complexity 감소
+            sev = _zap_determine_severity(alert, code_map)
+            url = _zap_get_alert_url(alert)
 
             counts[sev] += 1
-
-            # URL 하나만 대표로 잡기 (instances가 여러 개일 수도 있어서)
-            url = alert.get("url", "")
-            inst = alert.get("instances") or []
-            if inst and isinstance(inst, list):
-                url = inst[0].get("uri", url)
 
             details.append({
                 "tool": "zap",
@@ -154,12 +167,11 @@ def load_zap():
                 "rule_id": plugin_id,
                 "message": name,
                 "target": url,
-                "location": "",   # ZAP은 보통 URL로 충분
+                "location": "",
             })
 
     print("[ZAP] severity counts:", dict(counts))
     return counts, details
-
 
 # -------------------- CSV -------------------- #
 
