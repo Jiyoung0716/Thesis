@@ -72,6 +72,11 @@ def load_sonarcloud():
             comp_paths[key] = path_
     
     for issue in data.get("issues", []):
+        
+        status = issue.get("status")
+        if status in ("RESOLVED", "CLOSED"):
+            continue
+        
         sev = issue.get("severity", "UNKNOWN")
         rule = issue.get("rule", "")
         msg = issue.get("message", "")
