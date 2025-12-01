@@ -1,39 +1,14 @@
+{% load static %}
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8"/>
   <title>Signup / Secure Registry (Insecure baseline)</title>
-  <style>
-    body{font-family:system-ui,Arial;background:#111;color:#ddd;padding:20px;}
-    .card{background:#222;border-radius:8px;padding:18px;max-width:500px;margin:0 auto}
-    input, select {width:90%; padding:10px; margin:8px 0; border-radius:6px; border:1px solid #333; background:#1a1a1a; color:#ddd}
-    button{background:#2db34a;color:#fff;border:none;padding:12px 18px;border-radius:8px;cursor:pointer}
-    label{display:block;margin-top:6px;color:#9fdc9f}
-    table{width:100%;margin-top:20px;border-collapse:collapse}
-    th,td{border:1px solid #333;padding:8px;color:#ddd}
-    th{background:#1b1b1b}
-    .msg{margin:10px 0; padding:10px; border-radius:8px; background:#153d19; color:#b9f6c1}
-    .err{color:#ff7b7b; font-size:0.9rem}
-    .radio-inline {
-    display: flex;
-    gap: 20px;  /* 버튼 간격 */
-    align-items: center;
-  }
-  .radio-inline label {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  input[type="radio"] {
-    accent-color: #2db34a;  /* 버튼 색상 */
-    transform: scale(1.2);
-  }
-  </style>
+  <link rel="stylesheet" href="{% static 'css/signup.css' %}">
 </head>
 <body>
   <div class="card">
-    <h1 style="color:#2db34a">Signup (Baseline)</h1>
+    <h1 style="color:#2db34a">Signup Page</h1>
     
     <!-- Success message -->
     {% if saved %}

@@ -7,5 +7,13 @@ class CSPMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         # If needed, policy can modify more difficult
-        response["Content-Security-Policy"] = "default-src 'self'"
+        #response["Content-Security-Policy"] = "default-src 'self'"
+        
+        # inline <style> 허용
+        response["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self'; "
+            "img-src 'self' data:; "
+        )
         return response
