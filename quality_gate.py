@@ -83,30 +83,25 @@ def subtract_allowed_exceptions(detailed_csv_path, original_count):
             ):
                 adjusted -= 1
 
-    return max(adjusted, 0)
+    return max(adjusted, 0), (original_count - adjusted)
 
 
 def main():
     counts_by_sev = load_counts_from_csv(CSV_PATH)
     print("[Quality Gate] 전체 severity 집계:", dict(counts_by_sev))
 
-    blocking_total = 0
-    for sev in BLOCKING_SEVERITIES:
-        blocking_total += counts_by_sev.get(sev, 0)
+    # 차단 대상 severity 합계 계산
+    blocking_total = sum(counts_by_sev.get(sev, 0) for sev in BLOCKING_SEVERITIES)
 
-    print(f"[Quality Gate] 차감 전 blocking_total = {blocking_total}")
-
-    # 상세 CSV 기준으로 예외 이슈 차감
-    blocking_total = subtract_allowed_exceptions(DETAILED_CSV_PATH, blocking_total)
-
-    print(f"[Quality Gate] 예외 적용 후 blocking_total = {blocking_total}")
+    # 예외 처리 적용
+    blocking_total, exceptions_applied = subtract_allowed_exceptions(DETAILED_CSV_PATH, blocking_total)
 
     if blocking_total > 0:
         print(f"❌ Quality Gate FAILED: {BLOCKING_SEVERITIES} Total = {blocking_total}")
         print("Please check regarding issues to deploy successfully!!!!!")
         sys.exit(1)
     else:
-        print("✅ Quality Gate PASSED: No blocking severity (with allowed exceptions)")
+        print("✅ Quality Gate PASSED: No blocking severity (after applying", exceptions_applied, "exception(s))")
         print("This version has no blocking vulnerabilities. It can be deployed right now ^^.")
         sys.exit(0)
 
