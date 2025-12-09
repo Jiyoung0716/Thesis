@@ -24,7 +24,7 @@ def load_counts_from_csv(csv_path):
     with open(csv_path, "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            sev = row.get("severity", "").upper()
+            sev = (row.get("severity") or "").upper()
             try:
                 count = int(row.get("count", 0))
             except ValueError:
@@ -33,45 +33,52 @@ def load_counts_from_csv(csv_path):
 
     return counts_by_sev
 
+
 ALLOWED_ZAP_HIGH_MESSAGES = [
     'Server Leaks Version Information via "Server" HTTP Response Header Field',
     "CSP: Failure to Define Directive with No Fallback",
     "GET for POST",
 ]
 
+
 def subtract_allowed_exceptions(detailed_csv_path, original_count):
-    """ZAP HIGH 및 SonarCloud CRITICAL 중 예외로 허용할 이슈를 차감한다."""
+    """
+    ZAP HIGH 예외 + SonarCloud CRITICAL (staticfiles/admin/js) 예외를 차감한다.
+    """
     if original_count <= 0:
         return original_count
 
     if not os.path.exists(detailed_csv_path):
         return original_count
 
+    adjusted = original_count  # 여기서부터 차감
+
     with open(detailed_csv_path, "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            tool = row.get("tool", "")
+            tool = (row.get("tool") or "").lower()
             severity = (row.get("severity") or "").upper()
             message = row.get("message", "") or ""
-            file_path = row.get("file", "") or "" # 12월 9일 
+            file_path = row.get("file", "") or ""
 
-            # 예외: ZAP HIGH + "Server Leaks Version Information"
+            # 1) ZAP HIGH 예외
             if (
                 tool == "zap"
                 and severity == "HIGH"
                 and any(allowed in message for allowed in ALLOWED_ZAP_HIGH_MESSAGES)
             ):
-                original_count -= 1
-            
-            # SonarCLoud
+                adjusted -= 1
+                continue
+
+            # 2) SonarCloud CRITICAL + staticfiles/admin/js 예외
             if (
                 tool == "sonarcloud"
                 and severity == "CRITICAL"
                 and "staticfiles/admin/js" in file_path
             ):
                 adjusted -= 1
-                
-    return max(original_count, 0)
+
+    return max(adjusted, 0)
 
 
 def main():
@@ -82,16 +89,20 @@ def main():
     for sev in BLOCKING_SEVERITIES:
         blocking_total += counts_by_sev.get(sev, 0)
 
+    print(f"[Quality Gate] 차감 전 blocking_total = {blocking_total}")
+
     # 상세 CSV 기준으로 예외 이슈 차감
     blocking_total = subtract_allowed_exceptions(DETAILED_CSV_PATH, blocking_total)
 
+    print(f"[Quality Gate] 예외 적용 후 blocking_total = {blocking_total}")
+
     if blocking_total > 0:
         print(f"❌ Quality Gate FAILED: {BLOCKING_SEVERITIES} Total = {blocking_total}")
-        print(f"Please check regarding issues to deploy successfully!!!!!")
+        print("Please check regarding issues to deploy successfully!!!!!")
         sys.exit(1)
     else:
         print("✅ Quality Gate PASSED: No blocking severity (with allowed exceptions)")
-        print(f"This version has no vulnerabilities. It can be deployed right now ^^.")
+        print("This version has no blocking vulnerabilities. It can be deployed right now ^^.")
         sys.exit(0)
 
 
