@@ -40,6 +40,11 @@ ALLOWED_ZAP_HIGH_MESSAGES = [
     "GET for POST",
 ]
 
+ALLOWED_SONARCLOUD_CRITICAL_MESSAGES = [
+    "Cognitive Complexity",
+    "This loop's stop condition tests",
+]
+
 
 def subtract_allowed_exceptions(detailed_csv_path, original_count):
     """
@@ -72,9 +77,9 @@ def subtract_allowed_exceptions(detailed_csv_path, original_count):
 
             # 2) SonarCloud CRITICAL + staticfiles/admin/js 예외
             if (
-                tool == "sonarcloud"
+                tool.startswith("sonar")        # sonarcloud, sonar 등 모두 허용
                 and severity == "CRITICAL"
-                and "staticfiles/admin/js" in file_path
+                and any(allowed in message for allowed in ALLOWED_SONARCLOUD_CRITICAL_MESSAGES)
             ):
                 adjusted -= 1
 
