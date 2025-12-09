@@ -78,9 +78,11 @@ def main():
 
     if blocking_total > 0:
         print(f"❌ Quality Gate FAILED: {BLOCKING_SEVERITIES} Total = {blocking_total}")
+        print(f"Please check regarding issues to deploy successfully!!!!!")
         sys.exit(1)
     else:
         print("✅ Quality Gate PASSED: No blocking severity (with allowed exceptions)")
+        print(f"This version has no vulnerabilities. It can be deployed right now ^^.")
         sys.exit(0)
 
 
