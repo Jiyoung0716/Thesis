@@ -40,7 +40,7 @@ ALLOWED_ZAP_HIGH_MESSAGES = [
 ]
 
 def subtract_allowed_exceptions(detailed_csv_path, original_count):
-    """ZAP HIGH 중 'Server Leaks Version Information' 은 예외로 빼준다."""
+    """ZAP HIGH 및 SonarCloud CRITICAL 중 예외로 허용할 이슈를 차감한다."""
     if original_count <= 0:
         return original_count
 
@@ -53,6 +53,7 @@ def subtract_allowed_exceptions(detailed_csv_path, original_count):
             tool = row.get("tool", "")
             severity = (row.get("severity") or "").upper()
             message = row.get("message", "") or ""
+            file_path = row.get("file", "") or "" # 12월 9일 
 
             # 예외: ZAP HIGH + "Server Leaks Version Information"
             if (
@@ -61,6 +62,14 @@ def subtract_allowed_exceptions(detailed_csv_path, original_count):
                 and any(allowed in message for allowed in ALLOWED_ZAP_HIGH_MESSAGES)
             ):
                 original_count -= 1
+            
+            # SonarCLoud
+            if (
+                tool == "sonarcloud"
+                and severity == "CRITICAL"
+                and "staticfiles/admin/js" in file_path
+            ):
+                adjusted -= 1
                 
     return max(original_count, 0)
 
